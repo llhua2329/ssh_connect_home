@@ -1,8 +1,14 @@
 # 在任何地方访问在家中连接着路由器的linux主机
+
+----
 ## 实现原理
+
+---
 本质就是转发消息：两个tcp连接，将一个tcp连接中读到的消息不经过任何处理直接写到另一个tcp连接。
 通过ssh访问:使用ssh访问，最终所有的消息都转发到家中的ssh端口上
 ## 现实细节
+
+---
 需要借助一台公网的linux主机，例如腾讯云。
 * 1、在带有公网ip的腾讯云上运行server.go监听连个端口A, B
 * 2、让家中的liunx上运行client.go和server端口A建立tcp连接（管这个连接叫ctrl_connection） 这个连接只用来告知家中的主机，有新的连接请求来了
@@ -14,6 +20,8 @@
 
 整个流程：用户<---user_connect---->server <=交换数据=> server <----home_connect-----> client <=交换数据=> client <---ssh---> ssh
 ## 使用
+
+---
 #### 编译
 ```cgo
 # 如果没有安装go
@@ -30,4 +38,8 @@ go build client.go
 * 家中
 ```shell
 ./client -ip=xxx.xxx.xxx.xxx -port=12346
+```
+* 使用
+```shell
+ssh user@xxx.xxx.xxx.xxx -p 12345
 ```
