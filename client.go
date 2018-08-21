@@ -24,6 +24,7 @@ func Copy(dst net.Conn, src net.Conn) {
 func main() {
 	ip := flag.String("ip", "192.168.2.38", "remote ip")
 	port := flag.Int("port", 12346, "remote port")
+	flag.Parse()
 
 	server_addr := *ip +":"+ strconv.Itoa(*port)
 	control_conn, err := net.Dial("tcp", server_addr)
@@ -38,8 +39,8 @@ func main() {
 		if err != nil {
 			return
 		}
-		fmt.Printf("%x", byte[0])
-		if (byte[0] == 0xFF) {
+
+		if (byte[0] == 0xFF) { // 发起新的ssh连接
 			go newSsh(server_addr)
 		}
 	}
@@ -59,8 +60,6 @@ func newSsh(server_info string) {
 	}
 	defer local.Close()
 
-	fmt.Println("begin:", remote.LocalAddr(), local.RemoteAddr())
-	go Copy(local, remote) // flag:1
-	Copy(remote, local)  // local close then flag:1 will be return
-	fmt.Println("end:", remote.LocalAddr(), local.RemoteAddr())
+	go Copy(local, remote)
+	Copy(remote, local)
 }

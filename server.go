@@ -39,10 +39,10 @@ func main() {
 		}
 
 		byte := make([]byte, 1)
-		byte[0] = 0xFF
+		byte[0] = 0xFF  // 通知home 有新的ssh来连接
 		control_conn.Write(byte)
 
-		home_conn, err := listen_home.Accept()
+		home_conn, err := listen_home.Accept() // 等待home来连接
 		if err != nil {
 			user_conn.Close()
 			continue
@@ -53,8 +53,8 @@ func main() {
 
 
 func SwapConn(conn1 net.Conn, conn2 net.Conn) {
-	go Copy(conn1, conn2) // flag:1
-	Copy(conn2, conn1) // user_conn close then flag:1 will return
+	go Copy(conn1, conn2)
+	Copy(conn2, conn1)
 }
 
 func Copy(dst net.Conn, src net.Conn) {
