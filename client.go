@@ -45,7 +45,7 @@ func newSsh(server_info string) {
 	}
 	defer remote.Close()
 	fmt.Println(time.Now(), "send local ssh")
-	local, err := net.Dial("tcp", "192.168.1.200:22")
+	local, err := net.Dial("tcp", "127.0.0.1:22")
 	if err != nil {
 		fmt.Println("err:", err)
 		return
