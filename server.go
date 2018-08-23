@@ -59,11 +59,16 @@ func main() {
 }
 
 func CtrlWrite(w chan []byte, conn net.Conn) {
+	tick := time.Tick(5 * time.Second)
 	for {
 		select {
 		case buf := <-w:
 			fmt.Println("send ", buf)
 			conn.Write(buf)
+		case <- tick:
+			var buf [1]byte
+			buf[0] = 0xFE
+			w <- buf[:1]
 		}
 	}
 }

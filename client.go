@@ -32,6 +32,8 @@ func main() {
 		if byte[0] == 0xFF { // 发起新的ssh连接
 			fmt.Println(time.Now(), len, "accept now ssh")
 			go newSsh(server_addr)
+		} else if byte[0] == 0xFE {
+			// 心跳
 		}
 	}
 }
