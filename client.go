@@ -20,7 +20,7 @@ func main() {
 	}
 
 	defer control_conn.Close()
-
+	control_conn.SetDeadline(time.Time{})
 	for {
 		byte := make([]byte, 1)
 		len, err := control_conn.Read(byte)
