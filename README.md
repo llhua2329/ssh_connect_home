@@ -18,7 +18,9 @@
 
 重复3、4、5可以用来处理多个ssh连接请求
 
-整个流程：用户<---user_connect---->server <=交换数据=> server <----home_connect-----> client <=交换数据=> client <---ssh---> ssh
+整个流程：
+
+用户<---user_connect---->server <=交换数据=> server <----home_connect-----> client <=交换数据=> client <---ssh---> ssh
 ## 使用
 
 ---
@@ -27,8 +29,8 @@
 # 如果没有安装go
 yum install golang
 # 编译
-go build server.go 
-go build client.go 
+go build server.go common.go
+go build client.go common.go
 ```
 #### 运行
 * 公网主机（如腾讯云）

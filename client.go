@@ -18,22 +18,31 @@ func main() {
 	if err != nil {
 		return
 	}
-
 	defer control_conn.Close()
-	control_conn.SetDeadline(time.Time{})
-	for {
-		byte := make([]byte, 1)
-		len, err := control_conn.Read(byte)
-		if err != nil {
-			fmt.Println(time.Now(), err)
-			return
-		}
 
-		if byte[0] == 0xFF { // 发起新的ssh连接
-			fmt.Println(time.Now(), len, "accept now ssh")
-			go newSsh(server_addr)
-		} else if byte[0] == 0xFE {
-			// 心跳
+	var ctrl connection
+	ctrl.conn = control_conn
+	ctrl.recv = make(chan []byte)
+	ctrl.send = make(chan []byte)
+	go ctrl.Read()
+	go ctrl.Write()
+	Run(ctrl, server_addr)
+}
+
+func Run(ctrl connection, server_addr string) {
+	heartbeat := make([]byte, 1)
+	heartbeat[0] = 0xFE
+	byte := make([]byte, 1)
+	tick := time.Tick(5 * time.Second)
+	for {
+		select {
+		case <- tick: // 定时发送心跳
+			ctrl.send <- heartbeat
+		case byte = <-ctrl.recv:
+			if byte[0] == 0xFF { // 发起新的ssh连接
+				fmt.Println(time.Now(), "accept now ssh")
+				go newSsh(server_addr)
+			}
 		}
 	}
 }
@@ -42,38 +51,17 @@ func newSsh(server_info string) {
 	fmt.Println(time.Now(), "send server to create new ssh")
 	remote, err := net.Dial("tcp", server_info)
 	if err != nil {
-		fmt.Println("err:", err)
+		fmt.Println("ssh info connect to server:", err)
 		return
 	}
 	defer remote.Close()
 	fmt.Println(time.Now(), "send local ssh")
-	local, err := net.Dial("tcp", "127.0.0.1:22")
+	local, err := net.Dial("tcp", "192.168.1.200:22")
 	if err != nil {
-		fmt.Println("err:", err)
+		fmt.Println("ssh info connect to 22:", err)
 		return
 	}
 	fmt.Println(time.Now(), "swap data")
 	defer local.Close()
-
-	local.SetDeadline(time.Time{})
-	remote.SetDeadline(time.Time{})
-	go CopyConnection(local, remote)
-	CopyConnection(remote, local)
-}
-
-func CopyConnection(dst net.Conn, src net.Conn) {
-	defer dst.Close()
-	defer src.Close()
-	for {
-		recvBuff := make([]byte, 1024)
-		len, err := src.Read(recvBuff)
-		if err != nil {
-			fmt.Println("read info:", err)
-			return
-		}
-		len, err = dst.Write(recvBuff[:len])
-		if err != nil {
-			fmt.Println("write info", err)
-		}
-	}
+	SwapConn(local, remote)
 }
