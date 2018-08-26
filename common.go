@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
+	"strconv"
 )
 
 type connection struct {
@@ -62,4 +63,35 @@ func CopyConnection(dst net.Conn, src net.Conn) {
 func SwapConn(conn1 net.Conn, conn2 net.Conn) {
 	go CopyConnection(conn1, conn2)
 	CopyConnection(conn2, conn1)
+}
+
+
+type Acceptor struct {
+	lister net.Listener
+	conn chan net.Conn
+}
+
+func (l *Acceptor) Run(port int) error {
+	lister, err := net.Listen("tcp", "0.0.0.0:" + strconv.Itoa(port))
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	l.conn = make(chan net.Conn)
+	l.lister = lister
+	go l.accept()
+	return nil
+}
+
+func (l *Acceptor) accept() {
+	for {
+		conn, err := l.lister.Accept()
+		if err != nil {
+			fmt.Println("accept err", err)
+			break
+		}
+		l.conn <- conn
+		fmt.Println("accept new connect ")
+	}
+	l.lister.Close()
 }

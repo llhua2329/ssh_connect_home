@@ -1,47 +1,27 @@
 package main
 
 import (
-	"net"
 	"fmt"
 	"flag"
-	"strconv"
 	"time"
-	"os"
 )
-
-type myListener struct {
-	conn chan net.Conn
-}
-
-func (l *myListener) Init(port int) {
-	lister, err := net.Listen("tcp", "0.0.0.0:" + strconv.Itoa(port))
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(10)
-	}
-	defer lister.Close()
-	for {
-		conn, err := lister.Accept()
-		if err != nil {
-			fmt.Println("accept err", err)
-			break
-		}
-		fmt.Println("accept new ")
-		l.conn <- conn
-		fmt.Println("accept new connect ")
-	}
-}
 
 func main() {
 	user_port := flag.Int("user_port", 50000, "user connet port")
 	home_port := flag.Int("home_port", 50001, "home connect_port")
 	flag.Parse()
 
-	var home, user myListener
-	home.conn = make(chan net.Conn)
-	user.conn = make(chan net.Conn)
-	go home.Init(*home_port)
-	go user.Init(*user_port)
+	var home, user Acceptor
+	err := home.Run(*home_port)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	err = user.Run(*user_port)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
 	var ctrl connection
 	ctrl.recv = make(chan []byte)
