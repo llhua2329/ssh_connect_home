@@ -10,23 +10,28 @@ type connection struct {
 	conn net.Conn
 	recv chan []byte
 	send chan []byte
+	read_close chan struct{}
+	close_write chan struct{}
+	conn_is_open bool
 }
 
 func (c connection) Read() {
 	defer c.conn.Close()
+
 	buf := make([]byte, 1024)
 	for {
 		len, err := c.conn.Read(buf)
 		if err != nil {
 			fmt.Println("read error ", err)
-			return
+			break
 		}
 		if len == 0 {
 			fmt.Println("read 0")
-			return
+			break
 		}
 		c.recv <-buf[0:len]
 	}
+	c.read_close<- struct{}{}
 }
 
 func (c connection) Write() {
@@ -38,10 +43,11 @@ func (c connection) Write() {
 				fmt.Println("write err ", err)
 				return
 			}
+		case <- c.close_write:
+			return
 		}
 	}
 }
-
 
 func CopyConnection(dst net.Conn, src net.Conn) {
 	defer dst.Close()

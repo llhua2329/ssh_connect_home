@@ -22,43 +22,51 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-
-	var ctrl connection
+	ctrl := new(connection)
 	ctrl.recv = make(chan []byte)
 	ctrl.send = make(chan []byte)
+	ctrl.read_close = make(chan struct {})
+	ctrl.close_write = make(chan struct {})
 
-	ctrl.conn = <- home.conn
+	ctrl.conn = <-home.conn
 	fmt.Println("ctrl connection connected")
 	go ctrl.Read()
 	go ctrl.Write()
+	ctrl.conn_is_open = true
 
-	heart := int64(time.Now().Unix())
-	tick := time.Tick(3 * time.Second)
-	recv := make([]byte ,1)
+	recv := make([]byte, 1)
 	for {
 		select {
-		case user_conn := <- user.conn: // 处理新连接
-			go func() {
-				fmt.Println(time.Now(), "send new ssh notify to home client")
-				b := []byte{0xff}
-				ctrl.send <- b // 通知home 有新的ssh来连接
+		case user_conn := <-user.conn: // 处理新连接
+			if ctrl.conn_is_open == false {
+				fmt.Println("ctrl connection is closed , not idle connection")
+			} else {
+				go func() {
+					fmt.Println(time.Now(), "send new ssh notify to home client")
+					b := []byte{0xff}
+					ctrl.send <- b // 通知home 有新的ssh来连接
 
-				fmt.Println(time.Now(), "wait for home_conn")
-				home_conn := <- home.conn // 等待home来连接
-				fmt.Println(time.Now(), "accept home connected:", home_conn.RemoteAddr())
-				go SwapConn(user_conn, home_conn)
-			}()
-		case recv =<- ctrl.recv:
+					fmt.Println(time.Now(), "wait for home_conn")
+					home_conn := <-home.conn // 等待home来连接
+					fmt.Println(time.Now(), "accept home connected:", home_conn.RemoteAddr())
+					go SwapConn(user_conn, home_conn)
+				}()
+			}
+		case recv = <-ctrl.recv:
 			if (recv[0] == 0xFE) {
 				fmt.Println("heart from ctrl client")
-				heart = int64(time.Now().Unix())
 			}
-		case <-tick:
-			if int64(time.Now().Unix()) - heart > 20 {
-				fmt.Println("heart timeout")
-				ctrl.conn.Close()
-				return
-			}
+		case <-ctrl.read_close: // 当ctrl connection断开的时候
+			fmt.Println("ctrl connction close")
+			ctrl.close_write <- struct{}{}
+			ctrl.conn_is_open = false
+			go func() {
+				ctrl.conn = <-home.conn
+				fmt.Println("ctrl connection connected")
+				go ctrl.Read()
+				go ctrl.Write()
+				ctrl.conn_is_open = true
+			}()
 		}
 	}
 }

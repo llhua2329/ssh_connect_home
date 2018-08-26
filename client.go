@@ -6,6 +6,7 @@ import (
 	"flag"
 	"strconv"
 	"time"
+	"os"
 )
 
 func main() {
@@ -21,10 +22,12 @@ func main() {
 	}
 	defer control_conn.Close()
 
-	var ctrl connection
-	ctrl.conn = control_conn
+	ctrl := new(connection)
 	ctrl.recv = make(chan []byte)
 	ctrl.send = make(chan []byte)
+	ctrl.read_close = make(chan struct {})
+	ctrl.close_write = make(chan struct {})
+	ctrl.conn = control_conn
 	go ctrl.Read()
 	go ctrl.Write()
 
@@ -40,6 +43,10 @@ func main() {
 				fmt.Println(time.Now(), "accept now ssh")
 				go newSsh(server_addr)
 			}
+		case <- ctrl.read_close:
+			fmt.Println("ctrl connect close")
+			ctrl.close_write <- struct{}{}
+			os.Exit(0)
 		}
 	}
 }
@@ -53,7 +60,7 @@ func newSsh(server_info string) {
 	}
 	defer remote.Close()
 	fmt.Println(time.Now(), "send local ssh")
-	local, err := net.Dial("tcp", "127.0.0.1:22")
+	local, err := net.Dial("tcp", "192.168.0.146:22")
 	if err != nil {
 		fmt.Println("ssh info connect to 22:", err)
 		return
