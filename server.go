@@ -40,6 +40,7 @@ func main() {
 		case user_conn := <-user.conn: // 处理新连接
 			if ctrl.conn_is_open == false {
 				fmt.Println("ctrl connection is closed , not idle connection")
+				user_conn.Close()
 			} else {
 				go func() {
 					fmt.Println(time.Now(), "send new ssh notify to home client")
