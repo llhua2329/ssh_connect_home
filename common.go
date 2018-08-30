@@ -7,12 +7,21 @@ import (
 )
 
 type connection struct {
-	conn net.Conn
-	recv chan []byte
-	send chan []byte
-	read_close chan struct{}
-	close_write chan struct{}
+	conn         net.Conn
+	recv         chan []byte
+	send         chan []byte
+	read_close   chan struct{}
+	close_write  chan struct{}
 	conn_is_open bool
+}
+
+func NewConnection() *connection {
+	return &connection{
+		recv:        make(chan []byte),
+		send:        make(chan []byte),
+		read_close:  make(chan struct{}),
+		close_write: make(chan struct{}),
+	}
 }
 
 func (c connection) Read() {
@@ -29,9 +38,9 @@ func (c connection) Read() {
 			fmt.Println("read 0")
 			break
 		}
-		c.recv <-buf[0:len]
+		c.recv <- buf[0:len]
 	}
-	c.read_close<- struct{}{}
+	c.read_close <- struct{}{}
 }
 
 func (c connection) Write() {
@@ -43,7 +52,7 @@ func (c connection) Write() {
 				fmt.Println("write err ", err)
 				return
 			}
-		case <- c.close_write:
+		case <-c.close_write:
 			return
 		}
 	}
@@ -71,14 +80,13 @@ func SwapConn(conn1 net.Conn, conn2 net.Conn) {
 	CopyConnection(conn2, conn1)
 }
 
-
 type Acceptor struct {
 	lister net.Listener
-	conn chan net.Conn
+	conn   chan net.Conn
 }
 
 func (l *Acceptor) Run(port int) error {
-	lister, err := net.Listen("tcp", "0.0.0.0:" + strconv.Itoa(port))
+	lister, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(port))
 	if err != nil {
 		fmt.Println(err)
 		return err

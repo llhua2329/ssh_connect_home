@@ -1,20 +1,22 @@
 package main
 
 import (
-	"net"
-	"fmt"
 	"flag"
+	"fmt"
+	"net"
+	"os"
 	"strconv"
 	"time"
-	"os"
 )
 
 func main() {
 	ip := flag.String("ip", "127.0.0.1", "remote ip")
-	port := flag.Int("port", 50001, "remote port")
+	remote_port := flag.Int("remote_port", 50001, "remote port")
+	local_port := flag.Int("local_port", 22, "local_port")
 	flag.Parse()
 
-	server_addr := *ip +":"+ strconv.Itoa(*port)
+	server_addr := *ip + ":" + strconv.Itoa(*remote_port)
+	local_addr := "127.0.0.1" + ":" + strconv.Itoa(*local_port)
 	control_conn, err := net.Dial("tcp", server_addr)
 	if err != nil {
 		fmt.Println("connect server failed", err)
@@ -22,11 +24,7 @@ func main() {
 	}
 	defer control_conn.Close()
 
-	ctrl := new(connection)
-	ctrl.recv = make(chan []byte)
-	ctrl.send = make(chan []byte)
-	ctrl.read_close = make(chan struct {})
-	ctrl.close_write = make(chan struct {})
+	ctrl := NewConnection()
 	ctrl.conn = control_conn
 	go ctrl.Read()
 	go ctrl.Write()
@@ -35,15 +33,15 @@ func main() {
 	tick := time.Tick(5 * time.Second)
 	for {
 		select {
-		case <- tick: // 定时发送心跳
+		case <-tick: // 定时发送心跳
 			heartbeat := []byte{0xFE}
 			ctrl.send <- heartbeat
 		case recv = <-ctrl.recv:
 			if recv[0] == 0xFF { // 发起新的ssh连接
 				fmt.Println(time.Now(), "accept now ssh")
-				go newSsh(server_addr)
+				go NewChannel(server_addr, local_addr)
 			}
-		case <- ctrl.read_close:
+		case <-ctrl.read_close:
 			fmt.Println("ctrl connect close")
 			ctrl.close_write <- struct{}{}
 			os.Exit(0)
@@ -51,7 +49,7 @@ func main() {
 	}
 }
 
-func newSsh(server_info string) {
+func NewChannel(server_info string, local_addr string) {
 	fmt.Println(time.Now(), "send server to create new ssh")
 	remote, err := net.Dial("tcp", server_info)
 	if err != nil {
@@ -60,7 +58,7 @@ func newSsh(server_info string) {
 	}
 	defer remote.Close()
 	fmt.Println(time.Now(), "send local ssh")
-	local, err := net.Dial("tcp", "127.0.0.1:22")
+	local, err := net.Dial("tcp", local_addr)
 	if err != nil {
 		fmt.Println("ssh info connect to 22:", err)
 		return

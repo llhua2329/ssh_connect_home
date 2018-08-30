@@ -4,7 +4,7 @@
 ## 实现原理
 
 ---
-本质就是转发消息：两个tcp连接，将一个tcp连接中读到的消息不经过任何处理直接写到另一个tcp连接。
+本质就是转发消息：两个tcp连接，将一个tcp连接中读到的消息不经过任何处理直接写到另一个tcp连接。  
 通过ssh访问:使用ssh访问，最终所有的消息都转发到家中的ssh端口上
 ## 现实细节
 
@@ -39,9 +39,13 @@ go build client.go common.go
 ```
 * 家中
 ```shell
-./client -ip=xxx.xxx.xxx.xxx -port=12346
+./client -ip=xxx.xxx.xxx.xxx -remote_port=12346 -local_port=22 # local_port默认为22
 ```
 * 使用
 ```shell
 ssh user@xxx.xxx.xxx.xxx -p 12345
 ```
+
+# windows远程桌面连接
+在局域网内可以通过mstsc进行远程桌面连接，mstsc的端口为3389,只要我们将client运行在window上就
+可以通过公网ip加端口连接到windows

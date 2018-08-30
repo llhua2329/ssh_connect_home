@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"flag"
+	"fmt"
 	"time"
 )
 
@@ -22,12 +22,7 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	ctrl := new(connection)
-	ctrl.recv = make(chan []byte)
-	ctrl.send = make(chan []byte)
-	ctrl.read_close = make(chan struct {})
-	ctrl.close_write = make(chan struct {})
-
+	ctrl := NewConnection()
 	ctrl.conn = <-home.conn
 	fmt.Println("ctrl connection connected")
 	go ctrl.Read()
@@ -54,7 +49,7 @@ func main() {
 				}()
 			}
 		case recv = <-ctrl.recv:
-			if (recv[0] == 0xFE) {
+			if recv[0] == 0xFE {
 				fmt.Println("heart from ctrl client")
 			}
 		case <-ctrl.read_close: // 当ctrl connection断开的时候
