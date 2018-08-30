@@ -54,7 +54,6 @@ func main() {
 			}
 		case <-ctrl.read_close: // 当ctrl connection断开的时候
 			fmt.Println("ctrl connction close")
-			ctrl.close_write <- struct{}{}
 			ctrl.conn_is_open = false
 			go func() {
 				ctrl.conn = <-home.conn

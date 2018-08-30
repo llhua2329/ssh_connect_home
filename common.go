@@ -32,10 +32,12 @@ func (c connection) Read() {
 		len, err := c.conn.Read(buf)
 		if err != nil {
 			fmt.Println("read error ", err)
+			c.close_write <- struct{}{}
 			break
 		}
 		if len == 0 {
 			fmt.Println("read 0")
+			c.close_write <- struct{}{}
 			break
 		}
 		c.recv <- buf[0:len]
@@ -53,6 +55,7 @@ func (c connection) Write() {
 				return
 			}
 		case <-c.close_write:
+			fmt.Println("close connection write")
 			return
 		}
 	}

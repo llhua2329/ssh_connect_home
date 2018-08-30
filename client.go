@@ -16,7 +16,7 @@ func main() {
 	flag.Parse()
 
 	server_addr := *ip + ":" + strconv.Itoa(*remote_port)
-	local_addr := "127.0.0.1" + ":" + strconv.Itoa(*local_port)
+	local_addr := "192.168.1.200" + ":" + strconv.Itoa(*local_port)
 	control_conn, err := net.Dial("tcp", server_addr)
 	if err != nil {
 		fmt.Println("connect server failed", err)
@@ -43,7 +43,6 @@ func main() {
 			}
 		case <-ctrl.read_close:
 			fmt.Println("ctrl connect close")
-			ctrl.close_write <- struct{}{}
 			os.Exit(0)
 		}
 	}
