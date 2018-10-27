@@ -108,7 +108,7 @@ func (l *Acceptor) accept() {
 			break
 		}
 		l.conn <- conn
-		fmt.Println("accept new connect ")
+		fmt.Println("accept new connect ", "RemoteAddr:", conn.RemoteAddr())
 	}
 	l.lister.Close()
 }
